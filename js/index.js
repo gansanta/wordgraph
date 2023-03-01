@@ -9,7 +9,7 @@ let height = window.innerHeight + innerpadding
 let widthScale = d3.scaleLinear()
                 .domain([0,width]) //should be 30 max for num of alphabet
                 .range([0,width])
-
+console.log("hello")
 let ydistance = 30 // vertical distance between two lines
 let xdistance = 50 // horizontal distance between points
 let leftletterstart = 20
