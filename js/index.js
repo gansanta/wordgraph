@@ -1,6 +1,7 @@
 
 
 let alphabet = [..."abcdefghijklmnopqrstuvwxyz"]
+let numbers = [..."1234567890"]
 let innerpadding = 100
 let width = window.innerWidth + innerpadding
 let height = window.innerHeight + innerpadding
@@ -13,9 +14,7 @@ let ydistance = 30 // vertical distance between two lines
 let xdistance = 50 // horizontal distance between points
 let leftletterstart = 20
 let leftaxispadding = 20     
-let axisleft = leftaxispadding + leftaxispadding   //x axis starts here      
-
-let inputtext = "how are you?"
+let axisleft = leftaxispadding + leftaxispadding   //x axis starts here   
 
 let dotradius = 10 //circle radius on the point
 
@@ -52,12 +51,19 @@ window.onresize = ()=>{
 function setListener(){
     let input = document.getElementById("input")
     let radio = document.getElementById("radio")
+    let chunk = document.getElementById("chunk")
+    let chunkvalue = document.getElementById("chunkvalue")
 
     input.oninput = (e)=>{
         handleChange(input)
     }
 
     radio.onchange = (e)=>{
+        handleChange(input)
+    }
+    
+    chunk.oninput = ()=>{
+        chunkvalue.innerHTML = chunk.value
         handleChange(input)
     }
 
@@ -97,7 +103,8 @@ function prepareCanvas(){
         .enter() //create placeholder for every value in data
         .append("line")
         .attr("stroke","gray")
-        .style("stroke-dasharray", ("3, 3"))
+        .style("stroke-width", function(d,i){return i == 13 ? "5": i%3 == 0 ? "1": "0.25"} )
+        //.style("stroke-dasharray", ("3, 3"))
         .attr("x1", axisleft)
         .attr("y1", function(d,i){return ydistance + i*ydistance})
         .attr("x2", width)
@@ -110,7 +117,15 @@ function prepareCanvas(){
 
 }
 function createGraphFromText(inputtext){
-    let data = numericalizerText(inputtext)
+    let data = null
+    let isNumber = isAllNumbers(inputtext) //check if it is only numbers! eg: digits in pie!
+    if(isNumber){
+        //if numbers, split and put space and join them by putting space 
+        let predata = inputtext.split("").join(" ")
+        data = numericalizerText(predata, true)
+    }
+    else data = numericalizerText(inputtext)
+    
     let dpoints = getDatapointsFromTextData(data)
     
     //here you need to draw label for each dpoints
@@ -123,7 +138,9 @@ function drawConnectingLines(dpoints){
     let lineid = "id" + Math.random().toString(16).slice(2)
 
     //make a few chunks so that the points appear to be connected in chunks
-    let dpchunks = getInChunks(dpoints)
+    let chunksize = document.getElementById("chunk").value
+
+    let dpchunks = getInChunks(dpoints, parseInt(chunksize))
     dpchunks.forEach(dcpoints =>{ //it is asynchronous, desirable in this case
         //skip first point
         let dpairs = getDatapointPairs(dcpoints)
@@ -145,11 +162,32 @@ function drawConnectingLines(dpoints){
 //chunk array into subarrays
 //default number for each chunk is 5
 function getInChunks(array, chunksize = 5){
+    //avoiding future disaster
+    if(!chunksize || chunksize <= 0) chunksize = 5
     let chunks = []
+    /*
+    
+    let i = 0
+    let startindex = 0
+    let endindex = chunksize
+    let numchunks = Math.ceil(array.length/chunksize)
+    while(i<numchunks){
+        //define range
+        startindex = i*chunksize
+        endindex = startindex + chunksize
+        let chunk = array.slice(startindex, endindex)
+        chunks.push(chunk)
+        
+        i++
+    }
+    */
     for (let i = 0; i < array.length; i += chunksize) {
+        console.log(i, i + chunksize)
         const chunk = array.slice(i, i + chunksize)
         chunks.push(chunk)
+        
     }
+    console.log(chunks)
     return chunks
 }
 
@@ -237,9 +275,16 @@ function getDatapointsFromTextData(data){
     return data
 }
 
-function numericalizerText(text){
+function numericalizerText(text, numberonly = false){
     let words = text.split(" ")
+    
+    let data = []
+    if(numberonly) data = getNumberWords(words)   
+    else data = getTextWords(words)
 
+    return data
+}
+function getTextWords(words){
     let data = []
     for(let i=0; i<words.length; i++){
         let word = words[i]
@@ -256,12 +301,48 @@ function numericalizerText(text){
                 })
                 break
             }
+            
             x++
         }
         
     }
 
     return data
+}
+function getNumberWords(words){
+    let data = []
+    for(let i=0; i<words.length; i++){
+        let word = words[i]
+        //let modword = preProcessData(word) //processed version of the word
+        let x = 0
+        while(x < word.length){
+            let xchar = word[x]
+            if(numbers.includes(xchar)){
+                data.push({
+                    label:word, //keep original word
+                    word: word, //it should be same as label
+                    letter: xchar,
+                    index: numbers.indexOf(xchar)
+                })
+                break
+            }
+            
+            x++
+        }
+        
+    }
+
+    return data
+}
+
+function isAllNumbers(data){
+    let x = 0
+    while(x < data.length){
+        let xchar = data[x]
+        if(alphabet.includes(xchar)) return false
+        x++
+    }
+    return true
 }
 
 function preProcessData(text){
