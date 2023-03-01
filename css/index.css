@@ -1,0 +1,18 @@
+#inputdiv{
+    display: inline;
+}
+input{
+    margin-left: 200px;
+    padding: 10px;
+    border-radius: 20px;
+}
+
+.myLabel{
+    color: red;
+    font-size: 20px;
+}
+.label{
+    color: red;
+    font-size: 20px;
+    background-color: green;
+}
