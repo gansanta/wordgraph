@@ -165,22 +165,7 @@ function getInChunks(array, chunksize = 5){
     //avoiding future disaster
     if(!chunksize || chunksize <= 0) chunksize = 5
     let chunks = []
-    /*
     
-    let i = 0
-    let startindex = 0
-    let endindex = chunksize
-    let numchunks = Math.ceil(array.length/chunksize)
-    while(i<numchunks){
-        //define range
-        startindex = i*chunksize
-        endindex = startindex + chunksize
-        let chunk = array.slice(startindex, endindex)
-        chunks.push(chunk)
-        
-        i++
-    }
-    */
     for (let i = 0; i < array.length; i += chunksize) {
         console.log(i, i + chunksize)
         const chunk = array.slice(i, i + chunksize)
@@ -217,30 +202,6 @@ function drawPoints(dpoints){
         .attr("stroke","red")
         .text(function(d){return d.label})
     dothistory.push(pointid)
-}
-
-function drawLineFromDPointpairs(dpointpairs, canvas){
-    //create line
-    let dotradius = 10
-    for(let i=0; i<dpointpairs.length; i++){
-        console.log(dpointpairs[i][0])
-        let nline = new Line(dpointpairs[i][0].point, dpointpairs[i][1].point, canvas, "green")
-        nline.drawLine()
-        linehistory.push(nline.id)
-
-        //create dot
-        let dot = new Circle(dpointpairs[i][0].point, dotradius, canvas, "green", "green")
-        dot.drawCircle()
-        dothistory.push(dot.id)
-
-        //draw the ending dot
-        if(i == dpointpairs.length-1) {
-            let dot = new Circle(dpointpairs[i][1].point, dotradius, canvas, "green", "green")
-            dot.drawCircle()
-            dothistory.push(dot.id)
-        }
-    }
-    
 }
 
 //datapoint{index, word, letter, point} !
@@ -368,92 +329,6 @@ function preProcessData(text){
 }
 
 function clearCanvas(){
-    
-    /* for(let i=0; i<linehistory.length; i++){
-        d3.select("#"+linehistory[i]).remove()
-    }
-    for(let i=0; i<dothistory.length; i++){
-        let dot = document.getElementById(dothistory[i])
-        if(dot) dot.parentElement.removeChild(dot)
-    } */
     d3.select("g").selectAll("*").remove()
-    
 }
 
-//It resizes the bars with windows resize
-function visualizeAlphabet(){
-    let dataArray = [20,30,40,50]
-
-    let canvas = d3.select("body")
-                .append("svg")
-                .attr("width",width)
-                .attr("height",height)
-                .style("border","1px solid red")
-    let bars = canvas.selectAll("rect")//bars are rectangles
-                //empty array of rectangles
-                .data(dataArray)//bind data
-                .enter() //create placeholder for every value in data
-                    .append("rect")
-                    .attr("width", function(d){return widthScale(d*width*0.01)})
-                    .attr("height", 50)
-                    .attr("y", function(d, i){return i*100})
-
-
-}
-
-function shapescreation(){
-    d3.select("body").append("p").text("Hi, what's up?")
-
-    d3.select("p")
-        .append("p")
-        .style("color", "red")
-        .attr("id","pid")
-        .text("This is second p!")
-
-    let canvas = d3.select("body")
-                    .append("svg")
-                    .attr("width", window.innerWidth)
-                    .attr("height", window.innerHeight)
-                    .style("border", "1px solid red")
-
-    let circle = canvas.append("circle")
-                    .attr("cx", 250)
-                    .attr("cy", 250)
-                    .attr("r", 50)
-                    .style("fill", "red")
-    
-    let rect = canvas.append("rect")
-                    .attr("width", 100)
-                    .attr("height", 50)
-
-    let line = canvas.append("line")
-                    .attr("x1",0)
-                    .attr("y1",100)
-                    .attr("x2",400)
-                    .attr("y2",400)
-                    .attr("stroke","green")
-                    .attr("stroke-width",10)
-    
-        
-}
-
-
-function visualizeData(){
-    let dataArray = [20,40,50]
-
-    let canvas = d3.select("body")
-                .append("svg")
-                .attr("width",500)
-                .attr("height",500)
-                .style("border","1px solid red")
-    let bars = canvas.selectAll("rect")//bars are rectangles
-                //empty array of rectangles
-                .data(dataArray)//bind data
-                .enter() //create placeholder for every value in data
-                    .append("rect")
-                    .attr("width", function(d){return d*10})
-                    .attr("height", 50)
-                    .attr("y", function(d, i){return i*100})
-
-
-}
