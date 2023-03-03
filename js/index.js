@@ -1,7 +1,7 @@
 
 
 let alphabet = [..."abcdefghijklmnopqrstuvwxyz"]
-let numbers = [..."1234567890"]
+let numbers = [..."0123456789"]
 let innerpadding = 100
 let width = window.innerWidth + innerpadding
 let height = window.innerHeight + innerpadding
@@ -9,7 +9,6 @@ let height = window.innerHeight + innerpadding
 let widthScale = d3.scaleLinear()
                 .domain([0,width]) //should be 30 max for num of alphabet
                 .range([0,width])
-console.log("hello")
 let ydistance = 30 // vertical distance between two lines
 let xdistance = 50 // horizontal distance between points
 let leftletterstart = 20
@@ -42,7 +41,6 @@ window.onload = ()=>{
 window.onresize = ()=>{
     width = window.innerWidth
     height = window.innerHeight
-    //console.log(width, height)
     clearCanvas()
 
     let input = document.getElementById("input")
@@ -78,8 +76,13 @@ function handleChange(input){
     clearCanvas()
     datapoints = [] //reset
 
+    //here I should clear whole svg and add new one
+    //and then determine the input type
+    let isNumber = isAllNumbers(val) //check if it is only numbers! eg: digits in pie!
+    //and provide it from here
+    prepareCanvas(isNumber)
     //draw new svg
-    if(val.length>0) createGraphFromText(val)
+    if(val.length>0) createGraphFromText(val, isNumber)
 }
 
 
@@ -87,9 +90,20 @@ function init(){
     prepareCanvas()
 }
 
-function prepareCanvas(){
-    let letters = canvas.selectAll("text")
-        .data(alphabet)
+function prepareCanvas(isNumber=false){
+    if(isNumber) drawAxes(numbers)
+    else drawAxes(alphabet) 
+           
+    //initiate group at the end
+    //because it should be at the forefront of the lines
+    g = canvas.append("g")
+
+
+}
+
+function drawAxes(labelarray){
+    let labels = canvas.selectAll("text")
+        .data(labelarray)
         .enter()
         .append("text") //add letter
         .attr("x", leftletterstart)
@@ -98,27 +112,27 @@ function prepareCanvas(){
         .attr("class", "myLabel")//easy to style with CSS
         .text(function(d){return d})
 
+    //draw horizontal lines
     let lines = canvas.selectAll("line")//empty lines
-        .data(alphabet)//bind data
+        .data(labelarray)//bind data
         .enter() //create placeholder for every value in data
         .append("line")
         .attr("stroke","gray")
-        .style("stroke-width", function(d,i){return i == 13 ? "5": i%3 == 0 ? "1": "0.25"} )
+        .style("stroke-width", function(d,i){return i == Math.ceil(labelarray/2) ? "3": i%3 == 0 ? "1": "0.25"} )
         //.style("stroke-dasharray", ("3, 3"))
         .attr("x1", axisleft)
         .attr("y1", function(d,i){return ydistance + i*ydistance})
         .attr("x2", width)
         .attr("y2", function(d,i){return ydistance + i*ydistance})
-               
-    //initiate group at the end
-    //because it should be at the forefront of the lines
-    g = canvas.append("g")
 
+    //
 
+   
 }
-function createGraphFromText(inputtext){
+
+function createGraphFromText(inputtext, isNumber = false){
     let data = null
-    let isNumber = isAllNumbers(inputtext) //check if it is only numbers! eg: digits in pie!
+    
     if(isNumber){
         //if numbers, split and put space and join them by putting space 
         let predata = inputtext.split("").join(" ")
@@ -167,12 +181,11 @@ function getInChunks(array, chunksize = 5){
     let chunks = []
     
     for (let i = 0; i < array.length; i += chunksize) {
-        console.log(i, i + chunksize)
         const chunk = array.slice(i, i + chunksize)
         chunks.push(chunk)
         
     }
-    console.log(chunks)
+    
     return chunks
 }
 
@@ -196,12 +209,53 @@ function drawPoints(dpoints){
     .enter()
         .append("text")
         .attr("x", function(d){ return d.point.x})
-        .attr("y", function(d, i){return i % 2 == 0 ? d.point.y-ydistance: d.point.y+ydistance}) //-(ydistance/10)
+        .attr("y", function(d, i){return i % 2 == 0 ? d.point.y-ydistance/2: d.point.y+ydistance}) //-(ydistance/10)
         .attr('text-anchor', 'middle')
         .attr("class", "label")//easy to style with CSS
         .attr("stroke","red")
         .text(function(d){return d.label})
+
+     //also draw vertical lines
+     g.selectAll("line.vertical")//empty lines
+     .data(dpoints)//bind data
+     .enter() //create placeholder for every value in data
+        .append("line")
+        .attr("stroke","gray")
+        .style("stroke-width", "0.25")
+        .attr("x1", function(d){ return d.point.x})
+        .attr("y1", 0)
+        .attr("x2", function(d){ return d.point.x})
+        .attr("y2", function(d,i){return dpoints.length*ydistance})
+
+
+    //end marking vertical lines
+    //to facilitate cropping
+    let newxs = getExtraPoints(dpoints,2)
+    g.selectAll("line.vertical")//empty lines
+    .data(newxs)//bind data
+    .enter() //create placeholder for every value in data
+        .append("line")
+        .attr("stroke","gray")
+        .style("stroke-width", "0.25")
+        .attr("x1", function(d){ return d})
+        .attr("y1", 0)
+        .attr("x2", function(d){ return d})
+        .attr("y2", function(d,i){return dpoints.length*ydistance})
+        
+        
     dothistory.push(pointid)
+}
+
+
+function getExtraPoints(dpoints, num = 5){
+    let lastpoint = dpoints[dpoints.length-1]
+    let lastx = lastpoint.point.x 
+
+    let newxs = []
+    for(let i=dpoints.length; i<dpoints.length+num; i++){
+        newxs.push(i*xdistance + xdistance + axisleft) //same formula at getDatapointsFromTextData(data)
+    }
+    return newxs
 }
 
 //datapoint{index, word, letter, point} !
@@ -329,6 +383,8 @@ function preProcessData(text){
 }
 
 function clearCanvas(){
-    d3.select("g").selectAll("*").remove()
+
+    //d3.select("g").selectAll("*").remove()
+    d3.select("svg").selectAll("*").remove()
 }
 
