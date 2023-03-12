@@ -9,11 +9,15 @@ let height = window.innerHeight + innerpadding
 let widthScale = d3.scaleLinear()
                 .domain([0,width]) //should be 30 max for num of alphabet
                 .range([0,width])
-let ydistance = 30 // vertical distance between two lines
+let ydistance = 20 // vertical distance between two lines
 let xdistance = 50 // horizontal distance between points
 let leftletterstart = 20
 let leftaxispadding = 20     
 let axisleft = leftaxispadding + leftaxispadding   //x axis starts here   
+
+let vgraphdistance = (labelarray)=>{
+    return (labelarray.length+2)*ydistance
+} 
 
 let dotradius = 10 //circle radius on the point
 
@@ -112,6 +116,16 @@ function drawAxes(labelarray){
         .attr("class", "myLabel")//easy to style with CSS
         .text(function(d){return d})
 
+    let labels2 = canvas.selectAll("text.below")
+        .data(labelarray)
+        .enter()
+        .append("text") //add letter
+        .attr("x", leftletterstart)
+        .attr("y", function(d,i){return vgraphdistance(labelarray)+ydistance + i*ydistance})
+        //.attr('text-anchor', 'middle')
+        .attr("class", "myLabel")//easy to style with CSS
+        .text(function(d){return d})
+
     //draw horizontal lines
     let lines = canvas.selectAll("line")//empty lines
         .data(labelarray)//bind data
@@ -125,7 +139,18 @@ function drawAxes(labelarray){
         .attr("x2", width)
         .attr("y2", function(d,i){return ydistance + i*ydistance})
 
-    //
+        //draw hlines below it again
+    let lines2 = canvas.selectAll("line.horizontal")//empty lines
+        .data(labelarray)//bind data
+        .enter() //create placeholder for every value in data
+        .append("line")
+        .attr("stroke","gray")
+        .style("stroke-width", function(d,i){return i == Math.ceil(labelarray/2) ? "3": i%3 == 0 ? "1": "0.25"} )
+        //.style("stroke-dasharray", ("3, 3"))
+        .attr("x1", axisleft)
+        .attr("y1", function(d,i){return vgraphdistance(labelarray)+ ydistance + i*ydistance})
+        .attr("x2", width)
+        .attr("y2", function(d,i){return vgraphdistance(labelarray)+ydistance + i*ydistance})
 
    
 }
@@ -133,23 +158,28 @@ function drawAxes(labelarray){
 function createGraphFromText(inputtext, isNumber = false){
     let data = null
     
+    let labelarray = alphabet //default
+
     if(isNumber){
+        labelarray = numbers
         //if numbers, split and put space and join them by putting space 
         let predata = inputtext.split("").join(" ")
         data = numericalizerText(predata, true)
     }
     else data = numericalizerText(inputtext)
     
-    let dpoints = getDatapointsFromTextData(data)
+    //returns data with added point property
+    let dpoints = getDatapointsFromTextData(data,labelarray)
     
     //here you need to draw label for each dpoints
-    drawPoints(dpoints)
+    drawPoints(dpoints,labelarray)
     drawConnectingLines(dpoints)
 
 }
 
 function drawConnectingLines(dpoints){
     let lineid = "id" + Math.random().toString(16).slice(2)
+    let lineid2 = "id" + Math.random().toString(16).slice(2)
 
     //make a few chunks so that the points appear to be connected in chunks
     let chunksize = document.getElementById("chunk").value
@@ -169,6 +199,19 @@ function drawConnectingLines(dpoints){
         .attr("x2", function(d){return d[1].point.x})
         .attr("y2", function(d,i){return d[1].point.y})
         .attr("id", lineid)
+
+        if(dpoints[0].mpoint){
+            g.selectAll("line.cline")
+            .data(dpairs)
+            .enter()
+            .append("line")
+            .attr("stroke","green")
+            .attr("x1", function(d){return d[0].mpoint.x})
+            .attr("y1", function(d,i){return d[0].mpoint.y})
+            .attr("x2", function(d){return d[1].mpoint.x})
+            .attr("y2", function(d,i){return d[1].mpoint.y})
+            .attr("id", lineid2)
+        }
     })
     
 }
@@ -189,9 +232,9 @@ function getInChunks(array, chunksize = 5){
     return chunks
 }
 
-function drawPoints(dpoints){
+function drawPoints(dpoints,labelarray){
     let pointid = "id" + Math.random().toString(16).slice(2)
-    
+    let mpointid = "id" + Math.random().toString(16).slice(2)
     g.selectAll("circle")
     .data(dpoints)
     .enter()
@@ -202,6 +245,21 @@ function drawPoints(dpoints){
     .attr('stroke', 'green')
     .attr('fill', "green")
     .attr("id", pointid)   
+
+    //meaning points
+    if(dpoints[0].mpoint){
+        g.selectAll("circle.meaning")
+        .data(dpoints)
+        .enter()
+        .append('circle')
+        .attr("cx", function(d){ return d.mpoint.x})
+        .attr("cy", function(d){return d.mpoint.y})
+        .attr('r', dotradius)
+        .attr('stroke', 'green')
+        .attr('fill', "green")
+        .attr("id", mpointid)   
+    }
+   
 
     // also draw label
     g.selectAll("text.label")
@@ -215,6 +273,20 @@ function drawPoints(dpoints){
         .attr("stroke","red")
         .text(function(d){return d.label})
 
+    //meaning points
+    if(dpoints[0].meaning){
+        g.selectAll("text.meaninglabel")
+        .data(dpoints)
+        .enter()
+            .append("text")
+            .attr("x", function(d){ return d.mpoint.x})
+            .attr("y", function(d, i){return i % 2 == 0 ? d.mpoint.y-ydistance/2: d.mpoint.y+ydistance}) //-(ydistance/10)
+            .attr('text-anchor', 'middle')
+            .attr("class", "label")//easy to style with CSS
+            .attr("stroke","red")
+            .text(function(d){return d.meaning})
+    }
+
      //also draw vertical lines
      g.selectAll("line.vertical")//empty lines
      .data(dpoints)//bind data
@@ -225,7 +297,24 @@ function drawPoints(dpoints){
         .attr("x1", function(d){ return d.point.x})
         .attr("y1", 0)
         .attr("x2", function(d){ return d.point.x})
-        .attr("y2", function(d,i){return dpoints.length*ydistance})
+        .attr("y2", function(d,i){return (alphabet.length+2)*ydistance})
+    
+       //also draw meaning vertical lines
+       //meaning points
+    if(dpoints[0].mpoint){
+        g.selectAll("line.verticalmeaning")//empty lines
+        .data(dpoints)//bind data
+        .enter() //create placeholder for every value in data
+           .append("line")
+           .attr("stroke","gray")
+           .style("stroke-width", "0.25")
+           .attr("x1", function(d){ return d.mpoint.x})
+           .attr("y1", vgraphdistance(labelarray))
+           .attr("x2", function(d){ return d.mpoint.x})
+           .attr("y2", function(d,i){return vgraphdistance(labelarray)+(alphabet.length+2)*ydistance})
+       
+    }
+     
 
 
     //end marking vertical lines
@@ -240,9 +329,25 @@ function drawPoints(dpoints){
         .attr("x1", function(d){ return d})
         .attr("y1", 0)
         .attr("x2", function(d){ return d})
-        .attr("y2", function(d,i){return dpoints.length*ydistance})
+        .attr("y2", function(d,i){return (alphabet.length+2)*ydistance})
         
-        
+    
+    //end marking vertical lines
+    //to facilitate cropping
+    if(dpoints[0].mpoint){
+        let newxs2 = getExtraPoints(dpoints,2)
+        g.selectAll("line.vertical")//empty lines
+        .data(newxs)//bind data
+        .enter() //create placeholder for every value in data
+            .append("line")
+            .attr("stroke","gray")
+            .style("stroke-width", "0.25")
+            .attr("x1", function(d){ return d})
+            .attr("y1", 0)
+            .attr("x2", function(d){ return d})
+            .attr("y2", function(d,i){return vgraphdistance(labelarray)+(alphabet.length+2)*ydistance})
+    }
+    
     dothistory.push(pointid)
 }
 
@@ -276,16 +381,25 @@ function getDatapointPairs(datapoints){
     
     return dpointpairs
 }
-function getDatapointsFromTextData(data){
+function getDatapointsFromTextData(data,labelarray){
 
-    let dpoints = []
+    //let dpoints = []
     
     //assign Point for each letter
     for(let i=0; i<data.length; i++){
         let x = i*xdistance + xdistance + axisleft
         let y = data[i].index * ydistance + ydistance
         data[i].point = new Point(x, y) 
-        dpoints.push(data[i].point)
+        
+        //dpoints.push(data[i].point)
+
+        if(data[i].mindex >= -1){
+            let mx = i*xdistance + xdistance + axisleft
+            let my = vgraphdistance(labelarray)+data[i].mindex * ydistance + ydistance
+            data[i].mpoint = new Point(mx, my) 
+
+        }
+        else data[i].mpoint = null
     }
     return data
 }
@@ -302,18 +416,27 @@ function numericalizerText(text, numberonly = false){
 function getTextWords(words){
     let data = []
     for(let i=0; i<words.length; i++){
-        let word = words[i]
+        let splits = words[i].split(";")
+        let word = splits[0]
         let modword = preProcessData(word) //processed version of the word
         let x = 0
         while(x < modword.length){
             let xchar = modword[x]
             if(alphabet.includes(xchar)){
-                data.push({
+                let xx = {
                     label:word, //keep original word
                     word: modword, //use processed word for calculation
                     letter: xchar,
-                    index: alphabet.indexOf(xchar)
-                })
+                    index: alphabet.indexOf(xchar),
+                }
+
+                if(splits[1]){
+                    let meaning = splits[1]
+                    xx.meaning = meaning
+                    xx["mletter"] = meaning[0]
+                    xx["mindex"] = alphabet.indexOf(meaning[0])
+                }
+                data.push(xx)
                 break
             }
             

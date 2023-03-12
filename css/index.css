@@ -2,10 +2,18 @@
     display: inline;
 }
 input{
+    font-size: 20px;
     margin-left: 200px;
     padding: 10px;
     border-radius: 20px;
 }
+input#input{
+    width: 400px;
+    margin-left: 200px;
+    padding: 10px;
+    border-radius: 20px;
+}
+
 
 svg{
     margin:20px;
